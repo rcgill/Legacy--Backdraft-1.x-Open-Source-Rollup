@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- Copyright (c) 2009-2010 Altoviso LLC. Use, modification, and distribution subject to terms of license. -->
+<html>
+  <head> 
+    <title>bdRead - The Intelligent Document Reader by ALTOVISO LLC</title>
+    <link href="css/pacifier.css" rel="stylesheet" type="text/css" />
+    <link href="css/tundra.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript">
+      window.onload= function() {
+        window.onload= "";
+        var
+          posit= -50,
+          startTime= (new Date()).getTime(),
+          pacify= function() {
+            var now= (new Date()).getTime();
+            if (now-startTime>15) {
+              startTime= now;
+              var node= document.getElementById("runner");
+              if (node) {
+                posit= (posit==450) ? -50 : (posit+5);
+                node.style.left= posit + "px";
+              } else {
+                window.clearInterval(handle);
+              }
+            }
+          },
+          handle= window.setInterval(pacify, 5);
+          e= document.createElement("script");
+        e.type= "text/javascript";
+        e.src= "../../bdLoad/lib/require.js";
+        e.charset= "utf-8";
+        document.getElementsByTagName("head")[0].appendChild(e);
+      };
+    </script>
+		<script src="config.js"></script>
+  </head>
+  <body class="tundra">
+    <div id="bdLoading"><div id="bdLoadingFrame">
+      <h1>bdRead</h1>
+      <h2>An intelligent document reader by ALTOVISO</h2>
+      <p>...loading application...</p>
+      <div id="runnerOuter"><div id="runnerFrame"><div id="runner"></div></div></div>
+      <p class="copy">Copyright &copy; 2009 ALTOVISO, Inc.<br />
+      (liberally licenced under a BSD-style license, see Help for details)</p>
+    </div></div>
+  </body>
+</html>

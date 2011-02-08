@@ -1,0 +1,517 @@
+@import url("../../../dojotoolkit/dojo/resources/dojo.css");
+@import url("../../../dojotoolkit/dijit/themes/tundra/tundra.css");
+@import url("../../../backdraft/lib/themes/tundra/tundra.css");
+
+/*
+dijit overrides
+*/
+body.tundra * {
+  font-family: sans-serif;
+}
+
+/*
+bd overrides
+*/
+.tundra .bdDijitCheckbox {
+  border: none;
+}
+
+.bdReadShowing {
+  border-bottom:2px solid blue;
+}
+
+/*
+  styles shared by all bdRead pages
+*/
+.tundra .bdReadPage {
+  padding:0 1em 2em;
+  background-color:white;
+  overflow:auto;
+}
+
+body.tundra div.code,
+body.tundra div.codeSynopsis,
+body.tundra div.codeSample {
+  background-color:#d0d0d0;
+  padding:.5em;
+  border:1px solid #7eabcd;
+  font-size:100%;
+  font-family:bitstream vera sans mono, courier, courier new, monotype;
+  overflow:auto;
+}
+
+div.codeSynopsis {
+  line-height:150%;
+}
+
+div.codeSynopsis,
+div.codeSample {
+  white-space:pre;
+}
+
+div.origin {
+  margin-top:1em;
+}
+
+div.code p {
+  margin:0;
+  white-space:pre;
+  font-family:bitstream vera sans mono, courier, courier new, monotype;
+}
+
+p.docComment {
+  display:none;
+}
+
+span.docComment {
+  display:none;
+}
+
+div.code span.string {
+  color:green;
+}
+
+div.code span.keyword {
+  color:blue;
+}
+
+div.code span.comment {
+  color:red;
+}
+
+div.code span.bold {
+  font-weight:bold;
+}
+
+.tundra *[class*="click_"]:hover {
+  text-decoration:underline;
+  cursor:pointer;
+}
+
+div.note,
+div.warn {
+  border:solid green;
+  border-width:0 0 0 5px;
+  padding-left:5px;
+  margin:5px 0;
+}
+
+div.warn {
+  border-color:red;
+}
+
+div.private {
+  border:1px solid #F7A6A6;
+}
+
+p.private {
+  background-color:#F7A6A6;
+  margin:0;
+}
+
+span.private {
+  display:inline-block;
+  padding:3px;
+  margin-right:3px;
+  font-weight:bold;
+  background-color:#F7A6A6;
+}
+
+span.attr {
+  display:inline-block;
+  padding:3px;
+  margin-right:3px;
+  font-weight:bold;
+  background-color:#ABD9A9;
+}
+
+span.inherited {
+  display:inline-block;
+  padding:3px;
+  margin-right:3px;
+  font-weight:bold;
+  background-color:#AFBBE0;
+}
+
+.defSrc {
+  margin-bottom:.5em;
+}
+
+.defSrc span.item,
+span.code {
+  display:inline-block;
+  font-family:bitstream vera sans mono, courier, courier new, monotype;
+}
+
+span.standin {
+  font-style:italic;
+}
+
+span.paramOverload {
+  vertical-align:super;
+}
+
+/*
+  inheritance table
+*/
+table.inheritance {
+  border-collapse:collapse;
+  padding:.5em;
+}
+
+table.inheritance td {
+  border:2px solid #7eabcd;;
+  padding:.5em;
+}
+
+table.inheritance td.linkSuper {
+  border-width: 0 0 0 2px;
+}
+
+table.inheritance td.linkSibling {
+  border-width: 0 0 2px 0;
+}
+
+table.inheritance td.linkSuper {
+  border-width: 0;
+  background-image: url('./images/up.png');
+  background-repeat: no-repeat;
+  background-position:center;
+}
+
+table.inheritance td.linkSibling {
+  border-width: 0;
+  background-image: url('./images/forward.png');
+  background-repeat: no-repeat;
+  background-position:center;
+}
+
+table.inheritance td.linkNone {
+  border-width: 0;
+  padding:5px;
+}
+
+
+/*
+  Table Design 1:
+
+  Black text
+  Grey header background
+  White field background
+  Tundra blue gridlines
+*/
+
+table.d1 {
+  border-collapse:collapse;
+  padding:1em 1em 0 1em;
+}
+
+table.d1 th,
+table.d1 td {
+  border:1px solid #7eabcd;
+  padding:.5em;
+}
+
+table.d1 th {
+  background-color:#d0d0d0;
+  font-size:100%;
+  font-weight:bold;
+}
+
+table.d1 td.title {
+  border:none;
+  font-size:200%;
+  font-weight:bold;
+  padding:.5em 1em 1em 0;
+}
+
+table.d1 td.group {
+  background-color:#d0d0d0;
+  font-size:150%;
+  font-weight:bold;
+}
+
+table.d1 td.indexSectionBreak {
+  border:none;
+  background-color:#f0f0f0;
+}
+
+table.d1 td p {
+  margin:1.5em 0 0 0;
+}
+
+table.d1 td p:first-child {
+  margin:0;
+}
+
+table.d1 tr.odd td {
+  background-color:#DFF0F1;
+/*#DBEBDE;*/
+/*#C4E0C8;*/
+}
+
+/*
+  Table Design 1 mods for a function parameters table
+*/
+table.d1 tr.param > td {
+  border-width:3px 1px 1px 1px;
+}
+
+table.d1 tr.param.first > td {
+  border-width:1px 1px 1px 1px;
+}
+
+/*
+  Table Design 1 mods for a catalog document table
+*/
+table.d1 td.doctitle {
+  background-color:#d0d0d0;
+  font-size:
+}
+
+table.d1 tr td.loaded:hover,
+table.d1 tr td.notLoaded:hover {
+  text-decoration:underline;
+  cursor:pointer;
+}
+
+/*
+  The Search Dialog
+*/
+.searchFor,
+.searchTrees,
+.searchSections {
+  border:2px solid #7eabcd;
+  border-bottom:none;
+  border-right:none;
+  left:15px;
+  width:39em;
+  position:absolute;
+  font-size:125%;
+  font-weight:bold;
+  padding:3px;
+  padding-left:15px;
+}
+
+
+.search .go .dijitButtonContents,
+.search .setTrees .dijitButtonContents,
+.search .setSections .dijitButtonContents{
+  width:4em;
+}
+
+
+.searchFor {
+  top:10px;
+  height:115px;
+  position:absolute;
+}
+
+.search .expr {
+  top:35px;
+  left:32px;
+  width: 44em;
+  position:absolute;
+}
+
+.search .go {
+  top:35px;
+  left:575px;
+  position:absolute;
+}
+
+.search .language {
+  top:60px;
+  left:32px;
+  height:75px;
+  width:20em;
+  position:absolute;
+}
+
+.search .ignoreCase {
+  top:60px;
+  left:300px;
+  height:5em;
+  width:10em;
+  position:absolute;
+}
+
+.searchTrees {
+  top:140px;
+  height:40px;
+  position:absolute;
+}
+
+.search .treesToSearch {
+  top:165px;
+  left:32px;
+  width:44em;
+  position:absolute;
+}
+
+.search .setTrees {
+  top:165px;
+  left:575px;
+  position:absolute;
+}
+
+.searchSections {
+  top:195px;
+  height:40px;
+  position:absolute;
+}
+
+.search .sectionsToSearch {
+  top:220px;
+  left:32px;
+  width:44em;
+  position:absolute;
+}
+
+.search .setSections {
+  top:220px;
+  left:575px;
+  position:absolute;
+}
+
+.results div {
+  font-size:150%;
+}
+
+.search .dijitButtonText {
+  width:2em;
+}
+
+/*
+ The search results widget
+*/
+div.searchResults {
+  overflow:auto;
+  background-color:white;
+}
+
+div.searchResults p {
+  margin:0 2em 1em 2em;
+}
+
+div.searchResults .status {
+  color:green;
+}
+
+div.searchResults .match {
+  font-weight:bold;
+  font-style:italic;
+}
+
+div.searchResults .name {
+  font-weight:bold;
+}
+
+
+/*
+  The list box used in the trees to search dialog
+*/   
+.bdReadListbox {
+  cursor:pointer;
+}
+
+.bdReadListbox p {
+  margin:0;
+  padding:2px;
+}
+
+.bdReadListbox p span {
+  display:block;
+  line-height:1em;
+}
+
+/*
+.bdReadListbox  p.focused span {
+  outline: 1px dotted black;
+}
+*/
+
+.bdReadListbox  p.hover {
+  background:#ECF2FF
+}
+
+.bdReadListbox  p.selected {
+   background:#e2ebfe;
+}
+
+/*
+  The list box used in the trees to search sialog
+*/
+.bdDialogContentFrame.selectSearchTrees {
+  height:400px;
+  width:400px;
+}
+
+.selectSearchTrees .tree,
+.selectSearchTrees .list {
+  overflow:auto;
+  border: 1px solid #7eabcd;
+}
+
+.bdReadListItem .Focused,
+.bdReadListItem .hover {
+  background-color: #E2EBFE;
+}
+.bdReadListItem.Selected {
+  background-color:#7EABCD;
+  color:white;
+}
+
+.selectSearchTrees .tree,
+.selectSearchTrees .add,
+.selectSearchTrees .sub,
+.selectSearchTrees .list,
+.selectSearchTrees .cancel,
+.selectSearchTrees .ok {
+  position:absolute;
+}
+
+.selectSearchTrees .add .dijitButtonContents,
+.selectSearchTrees .sub  .dijitButtonContents,
+.selectSearchTrees .cancel  .dijitButtonContents,
+.selectSearchTrees .ok  .dijitButtonContents {
+  width:6em;
+}
+
+/*
+  The load dialog
+*/
+.bdDialogContentFrame.load {
+  height:7em;
+  width:42em;
+}
+
+.load .url .dijitTextBox {
+  width:40em;
+}
+
+.load .url {
+  position:absolute;
+  top:2em;
+  height:2em;
+  left:1em;
+}
+
+.load .ok  .dijitButtonContents,
+.load .cancel  .dijitButtonContents {
+  width:6em;
+}
+
+.load .ok {
+  position:absolute;
+  width:6em;
+  bottom:1em;
+  right:1em;
+}
+
+.load .cancel {
+  position:absolute;
+  bottom:1em;
+  width:6em;
+  right:8em;
+}

@@ -1,0 +1,9 @@
+project-name: <unnamed>
+repository:   /home/rcgill/fossils/bdRead.fossil
+local-root:   /usr/home/rcgill/dev/www/bdframework-org/demo/bdRead/
+project-code: a0a6e0b79caf424292fcc76f50f12fb13243df20
+server-code:  9c212f5c855b6f492901f3403746dcaefc6c4abd
+checkout:     4cebeb53008d79ef93faa8e0aa5e919df904b845 2011-02-07 08:57:15 UTC
+parent:       661191bc8a319741869c0ad5e4fa085fc8fd4c99 2011-02-07 08:47:05 UTC
+tags:         trunk
+comment:      improved readme (user: rcgill)
