@@ -324,12 +324,8 @@
 
   // the loader can be defined exactly once; look for global define which is the symbol AMD loaders are
   // *required* to define (as opposed to require, which is optional)
-  if (has("loader-node")) {
-    if (isFunction(global.define)) {
-      console.log("global define already defined; did you try to load multiple AMD loaders?");
-      return;
-    }
-  } else {
+  
+ {
     if (isFunction(this.define)) {
       console.error("global define already defined; did you try to load multiple AMD loaders?");
       return;
@@ -398,18 +394,8 @@
         result.toAbsMid= function(mid) {
           return getModuleInfo(mid, module, packages, modules, req.baseUrl, ".", packageMapProg, pathsMapProg, pathTransforms).path;
         };
-        if (has("loader-undefApi")) {
-          result.undef= function(moduleId) {
-           // In order to reload a module, it must be undefined (this routine) and then re-requested.
-           // This is useful for testing frameworks (at least).
-             var 
-               module= getModule(moduleId, module),
-               pqn= module.pqn;
-             setDel(modules, pqn);
-             setDel(waiting, pqn);
-             setDel(injectedUrls, module.url);
-          };
-        }
+        
+
       }
       return result;
     },
@@ -587,9 +573,8 @@
     ranFactory= 0,
 
     runFactory= function(pqn, factory, args, cjs) {
-      if (has("loader-traceApi")) {
-        req.trace("loader-runFactory", [pqn]);
-      }
+      
+
       ranFactory= 1;
       return isFunction(factory) ? (factory.apply(null, args) || (cjs && cjs.exports)) : factory;
     },
@@ -613,9 +598,8 @@
           args= [], 
           i= 0;
 
-        if (has("loader-traceApi")) {
-          req.trace("loader-execModule", [pqn]);
-        }
+        
+
 
         // for circular dependencies, assume the first module encountered was executed OK
         // modules that circularly depend on a module that has not run its factory will get
@@ -636,17 +620,16 @@
           }
           args.push(argResult);
         }
-        if (has("loader-catchApi")) {
+        {
           try {
             module.result= runFactory(pqn, module.def, args, module.cjs);
           } catch (e) {
-            if (!has("loader-errorApi") || !req.onError("loader/exec", [e, pqn].concat(args))) {
+            if (!1                      || !req.onError("loader/exec", [e, pqn].concat(args))) {
               throw e;
             }
           }
-        } else {
-          module.result= runFactory(pqn, module.def, args, module.cjs);
         }
+
         module.evalOrder= evalOrder++;
         if (module.loadQ) {
           // this was a plugin module
@@ -657,9 +640,8 @@
             load.apply(null, q.shift());
           }
         }
-        if (has("loader-traceApi")) {
-          req.trace("loader-execModule-out", [pqn]);
-        }
+        
+
       }
       return module.result;
     },
@@ -687,7 +669,7 @@
       }
 
       checkCompleteRecursiveGuard= 0;
-      if (has("loader-pageLoadApi")) {
+      {
         onLoad();
       }
     };
@@ -697,23 +679,11 @@
   };
 
 
-  if (has("loader-traceApi")) {
-    // these make debugging nice
-    var
-      symbols= 
-        {},
-
-      symbol= function(name) {
-        return symbols[name] || (symbols[name]= {value:name});    
-      };
-
-    requested =symbol("requested");
-    arrived   =symbol("arrived");
-    nonmodule =symbol("not-a-module");
-  }
+  
 
 
-  if (has("loader-injectApi")) {
+
+  {
     var
       injectedUrls= 
         ///
@@ -829,9 +799,8 @@
         [],
   
       defineModule= function(module, deps, def) {
-        if (has("loader-traceApi")) {
-          req.trace("loader-defineModule", [module, deps]);
-        }
+        
+
   
         var pqn= module.pqn;
         if (module.injected==arrived) {
@@ -883,58 +852,31 @@
       };
   }
  
-  if (has("loader-timeoutApi")) {
-    var
-      // Timer machinery that monitors how long the loader is waiting and signals
-      // an error when the timer runs out.
-      timerId=
-        0,
   
-      clearTimer= function() {
-        timerId && clearTimeout(timerId);
-        timerId= 0;
-      },
-  
-      startTimer= function() {
-        clearTimer();
-        req.timeout && (timerId= setTimeout(function() { 
-          clearTimer();
-          req.onError("loader/timeout", [waiting]); 
-        }, req.timeout));
-      };
-  } else {
+ {
     var 
       clearTimer= noop,
       startTimer= noop;
   }
 
-  if (has("dom")) {
+  {
     var doc= document;
 
-    if (has("loader-pageLoadApi") || has("loader-injectApi")) {
+    {
       var on= function(node, eventName, handler, useCapture, ieEventName) {
         // Add an event listener to a DOM node using the API appropriate for the current browser; 
         // return a function that will disconnect the listener.
-        if (has("dom-addEventListener")) {
+        {
           node.addEventListener(eventName, handler, !!useCapture);
           return function() {
             node.removeEventListener(eventName, handler, !!useCapture);
           };
-        } else {
-          if (ieEventName!==false) {
-            eventName= ieEventName || "on"+eventName;
-            node.attachEvent(eventName, handler);
-            return function() {
-              node.detachEvent(eventName, handler);
-            };
-          } else {
-            return noop;
-          }
         }
+
       };
     }
 
-    if (has("loader-injectApi")) {
+    {
       var head= doc.getElementsByTagName("head")[0] || doc.getElementsByTagName("html")[0];
       req.injectUrl= req.injectUrl || function(url, callback) {
         // Append a script element to the head element with src=url; apply callback upon 
@@ -958,27 +900,10 @@
       };  
     }
 
-    if (has("loader-sniffApi")) {
-      // TODO: check that requirejs only sniff is not baseUrl
-      if (!req.baseUrl) {
-        req.baseUrl= "";
-        for (var match, src, dataMain, scripts= doc.getElementsByTagName("script"), i= 0; i<scripts.length; i++) {
-          src= scripts[i].getAttribute("src") || "";
-          if ((match= src.match(/require\.js$/))) {
-            req.baseUrl= src.substring(0, match.index) || "./";
-            dataMain= scripts[i].getAttribute("data-main");
-            if (dataMain) {
-              req.deps= req.deps || [dataMain];
-            }
-            // remember the base node so other machinery can use it to pass parameters (e.g., djConfig)
-            req.baseNode= scripts[i];
-            break;
-          }
-        }
-      }
-    }
+    
 
-    if (has("loader-pageLoadApi")) {
+
+    {
       // page load detect code derived from Dojo, Copyright (c) 2005-2010, The Dojo Foundation. Use, modification, and distribution subject to terms of license.
 
       //warn
@@ -1016,29 +941,8 @@
           DOMContentLoadedDisconnector= on(doc, "DOMContentLoaded", detectPageLoaded, false, false);
         }
 
-        if (!has("dom-addEventListener")) {
-          // note: this code courtesy of James Burke (https://github.com/jrburke/requirejs)
-          //DOMContentLoaded approximation, as found by Diego Perini:
-          //http://javascript.nwbox.com/IEContentLoaded/
-          if (self === self.top) {
-            scrollIntervalId = setInterval(function () {
-              try {
-                //From this ticket:
-                //http://bugs.dojotoolkit.org/ticket/11106,
-                //In IE HTML Application (HTA), such as in a selenium test,
-                //javascript in the iframe can't see anything outside
-                //of it, so self===self.top is true, but the iframe is
-                //not the top window and doScroll will be available
-                //before document.body is set. Test document.body
-                //before trying the doScroll trick.
-                if (doc.body) {
-                  doc.documentElement.doScroll("left");
-                  detectPageLoaded();
-                }
-              } catch (e) {}
-            }, 30);
-          }
-        }
+        
+
       }
 
       var 
@@ -1053,7 +957,7 @@
             //guard against recursions into this function
             onLoadRecursiveGuard= true;
             var f= loadQ.shift();
-            if (has("loader-catchApi")) {
+            {
               try {
                 f();
               } catch (e) {
@@ -1062,9 +966,8 @@
                   throw e;
                 }
               }
-            } else {
-              f();
             }
+
             onLoadRecursiveGuard= 0;
           }
         };
@@ -1089,27 +992,8 @@
     }
   }
 
-  if (has("loader-traceApi")) {
-    req.trace= function(
-      group, // the trace group to which this application belongs
-      args   // the contents of the trace
-    ) {
-      ///
-      // Tracing interface by group.
-      // 
-      // Sends the contents of args to the console iff require.trace[group] is truthy.
-      if (req.traceSet[group]) {
-        if (has("console-log-apply")) {
-          console.log.apply(console, [group+": "].concat(args));
-        } else {
-          //IE...
-          for (var i= 0; i<args.length; i++) {
-            console.log(args[i]);
-          }
-        }
-      }
-    };
-  } else {
+  
+ {
     req.trace= req.trace || noop;
   }
 
@@ -1128,7 +1012,7 @@
   // If the error was an uncaught exception, then if some subscriber signals that it has taken actions to recover 
   // and it is OK to continue by returning truthy, the exception is quashed; otherwise, the exception is rethrown. 
   // Other error conditions are handled as applicable for the particular error.
-  if (has("loader-errorApi")) {
+  {
     var onError= req.onError= 
       function(
         messageId, //(string) The topic to publish
@@ -1156,9 +1040,8 @@
       };
     onError.listeners= [];
     onError.log= [];
-  } else {
-    req.onError= req.onError || noop;
   }
+
 
   var def= function(
     mid,          //(commonjs.moduleId, optional) list of modules to be loaded before running factory
@@ -1180,205 +1063,87 @@
       execModule(defineModule(getModule(mid), [], factory));
       return;
     }
-    if (has("loader-amdFactoryScan")) {
-      if (arity==1) {
-        dependencies= [];
-        mid.toString()
-          .replace(/(\/\*([\s\S]*?)\*\/|\/\/(.*)$)/mg, "")
-          .replace(/require\(["']([\w\!\-_\.\/]+)["']\)/g, function (match, dep) {
-            dependencies.push(dep);
-          });
-        args= [0, defaultDeps.concat(dependencies), mid];
-      }
-    }
+    
+
     if (!args) {
       args= arity==1 ? [0, defaultDeps, mid] :
                        (arity==2 ? (isArray(mid) ? [0, mid, dependencies] : [mid, defaultDeps, dependencies]) :
                                                    [mid, dependencies, factory]);
     }
-    if (has("loader-traceApi")) {
-      req.trace("loader-define", args.slice(0, 2));
-    }
+    
+
     if (args[0]) {
       // if given a mid, always define the module immediately 
       // (no reason to give auto-detect algorithms below a chance to find an edge case to that doesn't work!)
       injectDependencies(defineModule(getModule(args[0]), args[1], args[2]));
     } else {
       // anonymous module; therefore module id is implied by the resource being loaded
-      if (has("dom-addEventListener") || has("loader-node")) {
+      {
         // not IE; therefore, onLoad will fire immediately after script finishes being evaluated
         // and the defQ can be run from that callback to detect the module id
         defQ.push(args);
-      } else {
-        // IE; therefore, cannot depend on 1-to-1, in-order exec of onLoad with script eval and must manually detect here
-        var 
-          length= injecting.length,
-          targetModule= length && injecting[length-1],
-          pqn, module;
-        if (!targetModule) {
-          for (pqn in waiting) {
-            module= modules[pqn];
-            if (module.node && module.node.readyState === 'interactive') {
-              targetModule= module;
-              break;
-            }
-          }
-        }
-        if (targetModule) {
-          injectDependencies(defineModule(targetModule, args[1], args[2]));
-        } else {
-          req.onError("loader/define-ie");
-        }
       }
+
     }
   };
   
-  if (has("loader-createHasModule")) {
+  {
     mix(getModule("has"), {injected:arrived, deps:[], executed:1, result:has});
   }
 
-  if (has("loader-publish-privates")) {
-    mix(req, {
-      // these may be interesting for other modules to use
-      isEmpty:isEmpty,
-      isFunction:isFunction,
-      isString:isString,
-      isArray:isArray,
-      forEach:forEach,
-      setIns:setIns,
-      setDel:setDel,
-      mix:mix,
-      uid:uid,
-      on:on,
   
-      // these may be interesting to look at when debugging
-      paths:paths,
-      packages:packages,
-      modules:modules,
-      execQ:execQ,
-      defQ:defQ,
-      waiting:waiting,
-      injectedUrls:injectedUrls,
-      loadQ:loadQ,
-  
-      // these are used by bdBuild (at least)
-      computeMapProg:computeMapProg,
-      runMapProg:runMapProg,
-      compactPath:compactPath,
-      transformPath:transformPath,
-      getModuleInfo:getModuleInfo
-    });
-  }
 
-  if (has("loader-node")) {
-    // publish require as a property of define; the node bootstrap will export this and then delete it
-    def.require= req;
-    global.define= def;
-    req.deps= req.deps || [];
-  } else {
+
+  
+ {
     define= def;
     require= req;
   }
 
   var onLoadCallback;
-  if (has("loader-requirejsApi")) {
-    onLoadCallback= userConfig.ready;
-    req.ready= req.addOnLoad;
-    req.def= define;
-  } else {
+  
+ {
     onLoadCallback= req.ready;
   }
 
-  if (has("loader-injectApi")) {
-    doWork(req.deps, req.callback, onLoadCallback);
-  } else {
-    // the cache holds a map from pqn to {deps, def} of all modules that should be instantiated
-    // in this mode, path and url are useless, and therefore not initialized
-    (function() {
-      var p;
-      for (p in cache) {
-        modules[p]= cache[p];
-      }
-      for (p in cache) {
-        var module= modules[p];
-        module.pqn= p;
-        for (var i= 0; i<deps.length; i++) {
-          deps[i]= getModule(deps[i], module);
-        }
-        execQ.push(module);
-      }
-      doCheckComplete();
-    })();
-  }
-})
-// begin default bootstrap configuration
-// note: typically, some or all of these arguments are replaced when compiling the loader for a particular target
-(
-  // the user can send in a configuration by defining a global require object
-  this.require || {}, 
-
-  // default configuration
   {
-    vendor:"altoviso.com",
-    version:"1.0-beta",
-    baseUrl:"",
-    host:"browser",
-    isBrowser:1,
-    timeout:0,
-    traceSet:{
-      // these are listed so its simple to turn them on/off while debugging bdLoad
-      "loader-define":0,
-      "loader-runFactory":0,
-      "loader-execModule":0,
-      "loader-execModule-out":0,
-      "loader-defineModule":0
-    }
-  },
+    doWork(req.deps, req.callback, onLoadCallback);
+  }
 
-  // has.js
-  (function() {
-    // if has is not provided, define a standard implementation
-    // this implementation adopted from https://github.com/phiggins42/has.js
-    var
-      global= this,
-      doc= document,
-      element= doc.createElement("div"),
-      cache= {
-        "dom":1,
-        "dom-addEventListener":!!document.addEventListener,
-        "console":typeof console!="undefined",
-        "console-log-apply":!!(typeof console!="undefined" && console.log && console.log.apply),
-        "loader-injectApi":1,
-        "loader-timeoutApi":1,
-        "loader-traceApi":1,
-        "loader-catchApi":1,
-        "loader-pageLoadApi":1,
-        "loader-errorApi":1,
-        "loader-sniffApi":0,
-        "loader-undefApi":0,
-        "loader-requirejsApi":1,
-        "loader-createHasModule":1,
-        "loader-amdFactoryScan":1,
-        "loader-publish-privates":1,
-        "native-xhr":!!this.XMLHttpRequest
-      },
-      has= function(name) {
-        if (typeof cache[name] == "function") {
-          cache[name]= cache[name](global, doc, element);
-        }
-        return cache[name];
-      };
-      has.cache= cache;
-      has.add= function(name, test, now) {
-        cache[name]= now ? test(global, doc, element) : test;
-      };
-      if (this.has) {
-        has= this.has;
-        for (var p in cache) {
-          has.add(p, function(){return cach[p];}, 1);
-        }
+})
+(
+this.require || {},
+{
+  host:"browser",
+  isBrowser:1,
+  timeout:0,
+  packages:[],
+  baseUrl:""
+},
+// this is a default, standard has implementation to use when you don't have/want the real has.js
+(function() {
+  // if has is not provided, define a standard implementation
+  // this implementation adopted from https://github.com/phiggins42/has.js
+  var
+    global= this,
+    doc= document,
+    element= doc.createElement("div"),
+    cache= {
+      // cache-start
+      "dom-addEventListener":!!doc.addEventListener
+      // cache-end
+    },
+    has= function(name) {
+      if (typeof cache[name] == "function") {
+        cache[name]= cache[name](global, doc, element);
       }
-      return has;
-  })()
+      return cache[name];
+    };
+    has.cache= cache;
+    has.add= function(name, test, now) {
+      cache[name]= now ? test(global, doc, element) : test;
+    };
+    return has;
+})()
+
 );
-// Copyright (c) 2008-2010, Rawld Gill and ALTOVISO LLC (www.altoviso.com). Use, modification, and distribution subject to terms of license.

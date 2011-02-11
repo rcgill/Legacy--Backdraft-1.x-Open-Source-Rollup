@@ -1,4 +1,4 @@
-Path: /home/rcgill/dev/dojotoolkit-trunk
+Path: .
 URL: https://svn.dojotoolkit.org/src/view/committer/all/trunk
 Repository Root: https://svn.dojotoolkit.org/src
 Repository UUID: 560b804f-0ae3-0310-86f3-f6aa0a117693

@@ -60,9 +60,12 @@ define(["require", "dojo/_base/_loader/bootstrap"], function(require, dojo){
 			}else{
 				return context;
 			}
-		};
+		},
+
+    // allow loader without DOMContentLoaded detect
+    ready= require.ready || function(){};
 	dojo.ready = dojo.addOnLoad = function(context, callback){
-		require.ready(callback ? simpleHitch(context, callback) : context);
+		ready(callback ? simpleHitch(context, callback) : context);
 	};
 	dojo.addOnLoad(function() {
 		dojo.postLoad = dojo.config.afterOnLoad = true;
@@ -88,11 +91,11 @@ define(["require", "dojo/_base/_loader/bootstrap"], function(require, dojo){
 		};
 	loaders.unshift = function() {
 		Array.prototype.unshift.apply(loaders, argsToArray(arguments));
-		require.ready(runLoaders);
+		ready(runLoaders);
 	};
 	loaders.splice = function() {
 		Array.prototype.splice.apply(loaders, argsToArray(arguments));
-		require.ready(runLoaders);
+		ready(runLoaders);
 	};
 
 	//TODO: put unload handling in a separate module

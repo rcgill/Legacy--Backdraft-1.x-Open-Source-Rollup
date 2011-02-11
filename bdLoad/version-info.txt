@@ -3,7 +3,7 @@ repository:   /home/rcgill/fossils/bdLoad.fossil
 local-root:   /usr/home/rcgill/dev/www/bdframework-org/demo/bdLoad/
 project-code: 77d0a853987bb68b34abc89b47c807fcab08940a
 server-code:  0c3d82f3ee6f1c957e8b6c6406954cb3ee1eb827
-checkout:     38013e9d55d1cb57068ec54565c844ab66ed1101 2011-02-08 10:48:41 UTC
-parent:       fe6763a5617d9417ac175adc6d47dfefe2360e11 2011-02-08 10:27:51 UTC
+checkout:     356e20fa2b9aba9ad6be707e4f363340c72d715d 2011-02-11 10:37:06 UTC
+parent:       bc29c56cc56bac0f6b9c1b3d938dc2f937997df0 2011-02-11 09:50:42 UTC
 tags:         trunk
-comment:      added dijit tests (user: rcgill)
+comment:      renamed test fails iaw convention (user: rcgill)

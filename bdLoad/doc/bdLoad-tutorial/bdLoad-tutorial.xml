@@ -1,17 +1,19 @@
 <?xml version='1.0'?>
-<!DOCTYPE book[
+<!DOCTYPE article[
 <!ENTITY mdash "–">
 <!ENTITY bc "browser&#x2194;compute">
 <!ENTITY implies "⇒">
-<!ENTITY deps "<code>dependencies</code>">
+<!ENTITY deps '<code xmlns="http://docbook.org/ns/docbook">dependencies</code>'>
 
 ]>
 <article xmlns="http://docbook.org/ns/docbook" xmlns:xlink="http://www.w3.org/1999/xlink" version="5.0">
     <info>
-        <title>The backdraft Loader</title>
+        <title>bdLoad</title>
+        <subtitle>Tutorial and Reference Manual</subtitle>
         <copyright>
-            <year>2010</year><holder>Rawld Gill</holder>
-        </copyright>
+            <year>2011</year>
+            <holder>Rawld Gill</holder>
+        </copyright><pubdate>This document was generated <?dbtimestamp format="Y-m-d H:M:S"?>.</pubdate>
         <author>
             <personname>
                 <firstname> Rawld </firstname>
@@ -20,7 +22,8 @@
             <affiliation>
                 <jobtitle> Chief Engineer </jobtitle>
                 <orgname> ALTOVISO LLC </orgname>
-            </affiliation><address>
+            </affiliation>
+            <address>
                 <street>3478 Buskirk Avenue, Suite 1000</street>
                 <city>
                     Pleasant Hill
@@ -35,8 +38,7 @@
             <email> rgill@altoviso.com </email>
         </author>
         <abstract>
-            <para>The backdraft loader is a <link xlink:href="http://www.commonjs.org/"
-                    >CommonJS</link>
+            <para>bdLoad is a <link xlink:href="http://www.commonjs.org/">CommonJS</link>
                 <link xlink:href="http://wiki.commonjs.org/wiki/Modules/AsynchronousDefinition"
                     >Modules/AsynchronousDefinition</link> compliant script injection loader for use
                 loading browser-based JavaScript applications. Its design places a high value on
@@ -56,9 +58,7 @@
             reassembling these modules in the browser must be employed. This is the job of a loader.
             Since the loader's job is to load code, it is usually the first code executed in an
             application. Because of this special status, loaders may define a few other types of
-            machinery:</para>
-        <para>
-            <itemizedlist>
+            machinery:<itemizedlist>
                 <listitem>
                     <para>Configuration control</para>
                 </listitem>
@@ -78,16 +78,14 @@
                 <listitem>
                     <para>Debugging machinery</para>
                 </listitem>
-            </itemizedlist>
-        </para>
+            </itemizedlist></para>
         <para>Loaders are difficult to get right. Most of the problem is rooted in the desire to add
             features, yet keep the loader small and unobtrusive. After all, once the application is
             loaded, the loader basically becomes a chunk of dead code that doesn't do anything.
             Clearly to pay for downloading 10K onto an iphone just to load the real application is a
             nonstarter. So there are lots of tradeoffs and some disagreement among loader developers
             about which are the right tradeoffs to take. The backdraft loader was designed with the
-            following values:</para>
-        <para><glosslist>
+            following values:<glosslist>
                 <glossentry>
                     <glossterm>Loader size is unimportant during development; it is often critically
                         important for released applications.</glossterm>
@@ -120,10 +118,7 @@
                             loader injection machinery must be removable.</para>
                     </glossdef>
                 </glossentry>
-                
-            </glosslist></para>
- 
-    </sect1>
+            </glosslist></para></sect1>
     <sect1>
         <title>Core Api</title>
         <sect2><title>require and define</title>
@@ -150,19 +145,18 @@
                 itself so that chaining several <code>require</code> applications is easy. Finally,
                     <code>require</code> is an asynchronous function, and there is no guarantee that
                 all of the prescribed processing has completed prior to it's return. </para>
-        <para>In order to fully understand how all of this works, we must understand...</para>
-        <para>
+        <para>In order to fully understand how all of this works, we must understand...
             <itemizedlist>
-                <listitem>
-                    <para>how a particular module identifier given in &deps; is resolved into some
-                        chunk of JavaScript code</para>
-                </listitem>
-                <listitem>
-                    <para>how a particular chunk of JavaScript code is evaluated and returns a value
-                            to the loader which may then be passed to <code>callback</code></para>
-                </listitem>
-            </itemizedlist>
-        </para>
+                    <listitem>
+                        <para>how a particular module identifier given in &deps; is resolved into
+                            some chunk of JavaScript code</para>
+                    </listitem>
+                    <listitem>
+                        <para>how a particular chunk of JavaScript code is evaluated and returns a
+                            value to the loader which may then be passed to
+                            <code>callback</code></para>
+                    </listitem>
+                </itemizedlist></para>
             <para>Let's answer the second question first.</para>
             <para>When the loader is requested to evaluate a JavaScript resource, it retrieves the
             chuck of JavaScript that embodies the resource and causes the evaluation of that chunk
@@ -206,12 +200,10 @@
                 completed prior to it's return. Finally, if <code>moduleId</code> is missing, then
                 the loader derives <code>moduleId</code> from the module identifier in the
                 dependency vector that caused the resource that contained the <code>define</code>
-                application to be loaded. For example, if the code...</para>
-        <para>
+                application to be loaded. For example, if the code...
             <programlisting>
 require(["arithmetic"]);
-</programlisting>
-        </para>
+</programlisting></para>
         <para>...caused the loader to load a script containing the
             code...<programlisting>
 define({
@@ -223,8 +215,8 @@ define({
                     <code>moduleId</code> of "arithmetic". In almost all cases,
                     <code>moduleId</code> should not be provided explicitly in a <code>define</code>
                 application, but rather should be implied. I'll explain why later.</para>
-        <para>We can now see how the loader becomes aware of module values: </para>
-        <para><itemizedlist>
+        <para>We can now see how the loader becomes aware of module values:
+            <itemizedlist>
                 <listitem>
                     <para>the dependency vector in either a <code>require</code> or
                             <code>define</code> application demands modules</para>
@@ -257,8 +249,8 @@ define(
 </programlisting></para>
         <para>...both gain access to the values of the
                     <filename>dijit/layout/TabContainer</filename> and
-                    <filename>bd/widgets/stateButton</filename> modules by the <emphasis role="italic">loader two-step</emphasis>:</para>
-        <para><itemizedlist>
+                    <filename>bd/widgets/stateButton</filename> modules by the <emphasis role="italic">loader two-step</emphasis>:
+            <itemizedlist>
                     <listitem>
                         <para>list the module identifier in the dependency vector</para>
                     </listitem>
@@ -319,8 +311,7 @@ require(
             global namespace. The loader merely gives machinery that programmers may use to store
             their top-level names.</para></sect2>
         <sect2><title>Relative Module Identifiers</title>
-        <para>So far, we've seen module identifiers appear in two locations:</para>
-        <para>
+        <para>So far, we've seen module identifiers appear in two locations:
             <itemizedlist>
                 <listitem>
                     <para>in the <code>moduleId</code> argument to the <code>define</code>
@@ -380,8 +371,7 @@ define(
 </programlisting></para>
         <para>Once again, ./utils and ./myModule/mySubModule are relative to the reference module,
                 which in this case is implied. This is the best practice for defining
-                modules:</para>
-        <para>
+                modules:
             <itemizedlist>
                 <listitem>
                     <para>The module name should never be specified explicitly.</para>
@@ -475,8 +465,7 @@ define(["dojo", "require"], function(dojo, require) {
                 </footnote> Then there's the other oddity when the module identifier specifies only
                 a package identifier. In this case, the module identifier is said to indicate the
                 package "main module" and you can imagine the suffix "/main" is implied. Let's go
-                through a few cases to make this clear:</para>
-        <para><itemizedlist>
+                through a few cases to make this clear:<itemizedlist>
                     <listitem>
                         <para>Given module identifier "X", and a package named "X" has not been
                             named in the configuration, the package identifier is implied to be
@@ -1150,8 +1139,7 @@ paths: {
         </funcsynopsis>
   
         <para>Once the plugin has been loaded, the loader sends the module identifier to the right
-            of the "!" to the <code>load</code> function:</para>
-        <para>
+            of the "!" to the <code>load</code> function:
             <itemizedlist>
                 <listitem>
                     <para>A context-require is manufactured with respect to the reference module
@@ -1394,8 +1382,7 @@ require(["text!myPackage/templates/myModule"], function(template) {
         <para><code>require.trace</code>  calls <code>console.log(groupId, args[0], args[1],
                 ...)</code> if and only if <code>req.traceSet[groupId]</code> is truthy.</para>
         <para>The loader provides the following <code>require.traceSet</code> group identifiers with
-            associated semantics:</para>
-        <para>
+            associated semantics:
             <itemizedlist>
                 <listitem>
                     <para>"loader-define": reports when the loader <code>define</code> function was
@@ -1658,8 +1645,7 @@ require({
             if you could take a snapshot of a freshly loaded, complete application (assuming no
             dynamic loading after the program starts running), you could just zip up this snap shot
             and distribute it as your application in a single file. This would have several
-            advantages:</para>
-        <para>
+            advantages:
             <itemizedlist>
                 <listitem>
                     <para>The latency inherit in multiple http transactions would be essentially be
