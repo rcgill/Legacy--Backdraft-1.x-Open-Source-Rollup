@@ -1,11 +1,2 @@
-Path: .
-URL: https://svn.dojotoolkit.org/src/view/committer/all/trunk
-Repository Root: https://svn.dojotoolkit.org/src
-Repository UUID: 560b804f-0ae3-0310-86f3-f6aa0a117693
-Revision: 23745
-Node Kind: directory
-Schedule: normal
-Last Changed Author: bill
-Last Changed Rev: 21117
-Last Changed Date: 2010-01-08 05:25:32 -0800 (Fri, 08 Jan 2010)
-
+This is Dojo version 1.6.0, available from http://download.dojotoolkit.org/release-1.6.0/dojo-release-1.6.0-src.tar.gz.
+(see the link titled "dojo-release-1.6.0-src.tar.gz" on http://download.dojotoolkit.org/release-1.6.0)

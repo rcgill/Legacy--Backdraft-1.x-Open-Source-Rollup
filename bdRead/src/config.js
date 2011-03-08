@@ -13,16 +13,12 @@ var require= {
     name:"dojo",
     location:"../../dojotoolkit/dojo",
     lib:".",
-    main:"lib/main-browser",
-    exclude:[/dojo\/tests\//, /\/robot(x)?/],
-    copyDirs:[[".", ".", ["*/.*", "*/tests*" ]]]
+    main:"lib/main-browser"
   },{
     name:"dijit",
     location:"../../dojotoolkit/dijit",
     lib:".",
-    main:"lib/main",
-    exclude:[/dijit\/tests\//, /\/robot(x)?/],
-    copyDirs:[[".", ".", ["*/.*", "*/tests*" ]]]
+    main:"lib/main"
   },{
     name:"bdRead",
     location:"./packages/bdRead"
@@ -31,24 +27,55 @@ var require= {
   deps:["bdRead"],
 
   build:{
+		files:[
+      // the loader...
+      ["../../bdLoad/lib/require.js", "./require.js"]
+    ],
+
+    destPaths:{
+      // put i18n and text in the root of the default package
+    },
+
     loaderConfig: {
+      pageLoaded: 1,
       paths:{
         "com/altoviso/javaScriptApiRef":"./packages/bdRead/lib/docTypes/javaScriptApiRef"
       }
     },
 
-    srcLoader:"../../bdLoad/lib/require.js",
+	  packages:[{
+      // since dojo uses the "text!" and "i18n!" plugin, and these are not really in the default package tree
+      // we must tell bdBuild to discover them by explicitly asking for them which will cause paths
+      // to be inspected
+      name:"*",
+      modules:{
+        i18n:1,
+        text:1
+      }
+    },{
+  		name:"dijit",
+      trees:[
+        // this is the lib tree without the svn, tests, or robot modules
+        [".", ".", "*/.*", "*/dijit/tests/*", /\/robot(x)?/]
+      ]
+  	},{
+  		name:"dojo",
+      trees:[
+        // this is the lib tree without the tests, svn, plugins, or temp files
+        [".", ".", "*/dojo/tests/*", /\/robot(x)?/, "*/.*", "*/dojo/lib/plugins"]
+      ]
+  	}],
 
     replacements: {
       "./bdRead.html": [
-        ['css/tundra.css', "css/css.css"],
+        ['css/tundra.css', "css/tundra.css"],
         ['<script src="config.js"></script>', ""],
         ["../../bdLoad/lib/require.js", "boot.js"]
       ]
     },
 
-    cssCompactSet:{
-      "./css/css.css":"./css/tundra.css"
+    compactCssSet:{
+      "./css/tundra.css":1
     },
 
 
@@ -81,6 +108,10 @@ var require= {
         boot:"boot.js",
         bootText:"require(['bdRead']);\n"
       }
+    },
+
+    dojoPragmaKwArgs:{
+      asynchLoader:1
     }
   }
 };

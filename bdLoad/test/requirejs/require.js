@@ -173,7 +173,7 @@
       req.pathTransforms= [],
 
     paths=
-      // requirejs paths
+      // CommonJS paths
       {},
 
     pathsMapProg=
@@ -272,7 +272,7 @@
 
     doWork= function(deps, callback, onLoadCallback) {
       ((deps && deps.length) || callback) && req(deps || [], callback || noop);
-      onLoadCallback && req.addOnLoad(onLoadCallback);
+      onLoadCallback && req.ready(onLoadCallback);
     },
 
     config= function(config, booting) {
@@ -287,6 +287,13 @@
       for (p in config) if (!/pathTransforms|paths|packages|packageMap|packagePaths|cache|ready/.test(p)) {
         req[p]= config[p];
       };
+
+      // make sure baseUrl ends with a slash
+      if (!req.baseUrl) {
+        req.baseUrl= "./";
+      } else if (!/\/$/.test(req.baseUrl)) {
+        req.baseUrl+= "/";
+      }
 
       // interpret a pathTransforms as items that should be added to the end of the existing map
       for (transforms= config.pathTransforms, i= 0; transforms && i<transforms.length; i++) {
@@ -439,7 +446,14 @@
       return 0;
     },
 
-    compactPath= function(path, trimLeadingDots) {
+    compactPath= function(path) {
+      while(/\/\.\//.test(path)) path= path.replace(/\/\.\//, "/");
+      path= path.replace(/(.*)\/\.$/, "$1");
+//TODO why \. in [^\/\.] next
+      while(/[^\/\.]+\/\.\./.test(path)) path= path.replace(/[^\/]+\/\.\.\/?/, "");
+      return path;
+/*
+ * TODO: DEL
       if (!/\./.test(path)) {
         // not dots in path; short-circuit return
         return path;
@@ -456,11 +470,12 @@
           } else {
             result.push("..");
           }
-        } else if (segment!="." || (!result.length && !trimLeadingDots)) {
+        } else if (segment!="." || !result.length) {
           result.push(segment);
         }
       }
       return result.join("/");
+*/
     },
 
     transformPath= function(
@@ -499,7 +514,7 @@
           mid= referenceModule ? referenceModule.path + "/../" + mid : baseUrl + mid;
         }
         // get rid of all the dots
-        path= compactPath(mid, true);
+        path= compactPath(mid);
         // find the package indicated by the module id, if any
         mapProg= referenceModule && referenceModule.pack && referenceModule.pack.mapProg;
         mapItem= (mapProg && runMapProg(path, mapProg)) || runMapProg(path, packageMapProg);
@@ -696,6 +711,18 @@
     return id;
   };
 
+  if (has("loader-undefApi")) {
+    req.undef= function(moduleId) {
+     // In order to reload a module, it must be undefined (this routine) and then re-requested.
+     // This is useful for testing frameworks (at least).
+       var 
+         module= getModule(moduleId, 0),
+         pqn= module.pqn;
+       setDel(modules, pqn);
+       setDel(waiting, pqn);
+       setDel(injectedUrls, module.url);
+    };
+  }
 
   if (has("loader-traceApi")) {
     // these make debugging nice
@@ -1069,7 +1096,7 @@
           }
         };
 
-      req.addOnLoad= function(
+      req.ready= function(
         context, //(object) The context in which to run execute callback
                  //(function) callback, if context missing
         callback //(function) The function to execute.
@@ -1086,6 +1113,8 @@
         }
         onLoad();
       };
+    } else {
+      req.ready= noop;
     }
   }
 
@@ -1280,17 +1309,12 @@
     require= req;
   }
 
-  var onLoadCallback;
   if (has("loader-requirejsApi")) {
-    onLoadCallback= userConfig.ready;
-    req.ready= req.addOnLoad;
     req.def= define;
-  } else {
-    onLoadCallback= req.ready;
   }
 
   if (has("loader-injectApi")) {
-    doWork(req.deps, req.callback, onLoadCallback);
+    doWork(req.deps, req.callback, userConfig.ready);
   } else {
     // the cache holds a map from pqn to {deps, def} of all modules that should be instantiated
     // in this mode, path and url are useless, and therefore not initialized
@@ -1321,7 +1345,7 @@
   {
     vendor:"altoviso.com",
     version:"1.0-beta",
-    baseUrl:"",
+    baseUrl:".",
     host:"browser",
     isBrowser:1,
     timeout:0,

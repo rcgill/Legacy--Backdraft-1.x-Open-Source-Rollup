@@ -17,7 +17,7 @@ var memoryStore = new dojo.store.Memory({
 
 var dataStore = new dojo.data.ObjectStore({objectStore: restStore});
 var memoryDataStore = new dojo.data.ObjectStore({objectStore: memoryStore});
-tests.register("tests.data.ObjectStore", 
+tests.register("tests.data.ObjectStore",
 	[
 		function testFetchByIdentity(t){
 			var d = new doh.Deferred();
@@ -37,6 +37,22 @@ tests.register("tests.data.ObjectStore",
 				d.callback(true);
 			}});
 			return d;
+		},
+		function testNewItem(t){
+			var newItem = memoryDataStore.newItem({
+				foo: "bar",
+				id: Math.random()
+			});
+			memoryDataStore.setValue(newItem, "prop1", 1);
+			memoryDataStore.save();
+			memoryDataStore.fetchItemByIdentity({
+				identity: memoryDataStore.getIdentity(newItem),
+				onItem: function(item){
+					t.is(memoryDataStore.getValue(item, "foo"), "bar");
+					memoryDataStore.setValue(newItem, "prop2", 2);
+					t.is(memoryDataStore.getValue(item, "prop1"), 1);
+					t.is(memoryDataStore.getValue(item, "prop2"), 2);
+				}});
 		},
 		function testMemoryQuery(t){
 			var d = new doh.Deferred();
@@ -59,6 +75,16 @@ tests.register("tests.data.ObjectStore",
 		function testMemoryQueryWithWildcard(t){
 			var d = new doh.Deferred();
 			memoryDataStore.fetch({query:{name:"f*"}, onComplete: function(results){
+				var object = results[0];
+				t.is(results.length, 2);
+				t.is(object.name, "four");
+				d.callback(true);
+			}});
+			return d;
+		},
+		function testMemoryQueryWithWildcardCaseInsensitive(t){
+			var d = new doh.Deferred();
+			memoryDataStore.fetch({query:{name:"F*"}, queryOptions: {ignoreCase: true}, onComplete: function(results){
 				var object = results[0];
 				t.is(results.length, 2);
 				t.is(object.name, "four");

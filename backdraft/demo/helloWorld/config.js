@@ -11,41 +11,70 @@ var require= {
 		name:"dojo",
 		location:"../../../dojotoolkit/dojo",
 		lib:".",
-		main:"lib/main-browser",
-    exclude:[/dojo\/tests\//, /\/robot(x)?/],
-    copyDirs:[[".", ".", ["*/.*", "*/tests*" ]]]
+		main:"lib/main-browser"
 	},{
 		name:"dijit",
 		location:"../../../dojotoolkit/dijit",
 		lib:".",
-		main:"lib/main",
-    exclude:[/dijit\/tests\//, /\/robot(x)?/],
-    copyDirs:[[".", ".", ["*/.*", "*/tests*" ]]]
+		main:"lib/main"
 	}],
 
 	deps:["main"],
 
 	build:{
-		srcLoader:"../../../bdLoad/lib/require.js",
+		files:[
+      // the loader...
+      ["../../../bdLoad/lib/require.js", "./require.js"]
+    ],
 
-		replacements:{
-			"helloWorld.html": [
+    destPaths:{
+      // override paths so that i18n and text go in the root of the default package
+    },
+
+	  packages:[{
+      // since dojo uses the "text!" and "i18n!" plugin, and these are not really in the default package tree
+      // we must tell bdBuild to discover them by explicitly asking for them which will cause paths
+      // to be inspected
+      name:"*",
+      modules:{
+        i18n:1,
+        text:1
+      }
+    },{
+  		name:"dojo",
+      trees:[
+      // this is the lib tree without the tests, svn, plugins, or temp files
+        [".", ".", "*/dojo/tests/*", /\/robot(x)?/, "*/.*", "*/dojo/lib/plugins"]
+      ]
+	  },{
+  		name:"dijit",
+      trees:[
+         // this is the lib tree without the svn, tests, or robot modules
+        [".", ".", "*/.*", "*/dijit/tests/*", /\/robot(x)?/]
+      ]
+	  }],
+
+		replacements: {
+			"./helloWorld.html": [
         ['css.css', "css/css.css"],
         ['<script src="config.js"></script>', ""],
         ["../../../bdLoad/lib/require.js", "boot.js"]
       ]
 		},
 
-    cssCompactSet:{
-      "./css/css.css":"./css.css"
+    compactCssSet:{
+      "./css.css":"./css/css.css"
     },
 
 		layers:{
 			main:{
-				include:["bd/widget/root"],
-				boot:"boot.js",
+				boot:"./boot.js",
         bootText:"require(['main']);\n"
 			}
-		}
+		},
+
+    dojoPragmaKwArgs:{
+      asynchLoader:1
+    }
 	}
 };

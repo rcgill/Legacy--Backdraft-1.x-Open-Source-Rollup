@@ -1,20 +1,21 @@
-define([], function() {
-return {
-  basePath:
-    ///
-    //(bdBuild.path) The root for any source path that is not specified as an absolute path.  //Must be provided.
-    0,
+define([], {
+  paths:{},
+  packageMap:{},
+  files:[],
+  dirs:[],
+  trees:[],
+  pathTransforms:[],
+  destPathTransforms:[],
+  replacements:{},
+  compactCssSet:{},
 
-  packages:
-    ///
-    //(vector of bdBuild.packageInfo) The set of packages to be compiled.
-    [],
+  // resources
+  resources:{},
+  resourcesByDest:{},
+  amdResources:{},
 
-  loaderConfig:
-    ///
-    //(bdLoad.config, optional, {}) The configuration object to pass to the bdLoad constructor.
-    {},
-  
+  startTimestamp: new Date(),
+
   staticHasFlags:{
     "dom":1,
     "loader-node":0,
@@ -32,29 +33,8 @@ return {
     "loader-createHas":1,
     "loader-createHasModule":1,
     "loader-pushHas":0,
-    "loader-amdFactoryScan":0,
-    "loader-throttleCheckComplete":0
+    "loader-amdFactoryScan":0
   },
-
-  destBasePath:
-    ///
-    //(bdBuild.path) The root location to output the build. //Must be provided.
-    0,
-
-  destPackageBasePath:
-    ///
-    //(bdBuild.path, optional "packages") The default path that contains all packages.
-    ///
-    // If not absolute, destBasePath is automatically prepended.
-    "packages",
-
-  ///
-  //(map:mid --> array of mid) layers to build.
-  // 
-  // Each map item says build a layer that includes all fully-resolved dependencies for the module given by
-  // the map item key, assuming all modules contained in the map item value, and their fully-resolved dependencies, 
-  // have already been defined
-  layers:{},
 
   loaderConfig: {
     host:"browser",
@@ -62,33 +42,80 @@ return {
     timeout:0
   },
 
-  // 
   buildFlags:{
     stripConsole:1,
     optimizeHas:1
   },
 
-  copyDirs:[],
-  copyFiles:[],
+  discoveryProcs:["bdBuild/discover"],
 
-  pluginResourceProcessors:[
-    "bdBuild/plugins/text",
-    "bdBuild/plugins/i18n"
-  ],
-
-  plugins:{},
-
-  procMap:{
-    jsResourceTextProc:"bdBuild/jsResourceTextProc",
-    jsResourceTokenProc:"bdBuild/jsResourceTokenProc",
-    jsResourceAstProc:"bdBuild/astProc/hasAmd"
+  plugins:{
+    text:"bdBuild/plugins/text",
+    i18n:"bdBuild/plugins/i18n"
   },
 
-  jobList:[
-    "bdBuild/loaderJob", 
-    "bdBuild/packageJob", 
-    "bdBuild/copyJob",
-    "bdBuild/compactCssJob"
+  gates:[
+    // [synchronized?, gate-name, gate-message]
+    [0, "read", "reading resources"], 
+    [0, "text", "processing raw resource content"], 
+    [0, "tokenize", "tokenizing resource"], 
+    [0, "tokens", "processing resource tokens"], 
+    [0, "parse", "parsing resource"], 
+    [1, "ast", "processing resource AST"], 
+    [1, "optimize", "executing global optimizations"], 
+    [1, "write", "writing resources"], 
+    [1, "cleanup", "cleaning up"], 
+    [1, "report", "done"]
+  ],
+
+  transformConfig: {},
+
+  transforms:{
+    read:        ["bdBuild/transforms/read", "read"],
+    dojoPragmas: ["bdBuild/transforms/dojoPragmas", "read"],
+    jsTokenize:  ["bdBuild/transforms/jsTokenize", "tokenize"],
+    jsParse:     ["bdBuild/transforms/jsParse", "parse"],
+    has:         ["bdBuild/transforms/has", "ast"],
+    amd:         ["bdBuild/transforms/amd", "ast"],
+    write:       ["bdBuild/transforms/write", "write"],
+    writeAmd:    ["bdBuild/transforms/writeAmd", "write"],
+    readBdLoad:  ["bdBuild/transforms/readBdLoad", "read"],
+    writeBdLoad: ["bdBuild/transforms/writeBdLoad", "write"],
+    compactCss:  ["bdBuild/transforms/compactCss", "optimize"],
+    writeCss:    ["bdBuild/transforms/writeCss", "write"]
+  },
+
+  transformJobs:[[
+      // the backdraft loader, bdLoad
+      function(resource) {
+          return /.*\/bdLoad\/lib\/require\.js$/.test(resource.src);
+      },
+      ["readBdLoad", "jsTokenize", "jsParse", "has", "writeBdLoad"]
+    ],[
+      // package/amd modules
+      function(resource) {
+          return resource.pqn;
+      },
+      ["read", "dojoPragmas", "jsTokenize", "jsParse", "has", "amd", "writeAmd"]
+    ],[
+      // normal, non-i18n Javascript code modules...
+      function(resource) {
+        return /\.js$/.test(resource.src) && !/.*\/nls\/.*/.test(resource.src) && !/\.bcs\./.test(resource.src);
+      },
+      ["read", "dojoPragmas", "jsTokenize", "jsParse", "has", "write"]
+    ],[
+      // css that are designated to compact
+      function(resource, bc) {
+        return bc.compactCssSet[resource.src];
+      },
+      ["read", "compactCss", "writeCss"]
+    ],[
+      // just copy everything else...
+      function(resource) {
+        return true; 
+      },
+      ["read", "write"]
+    ]
   ]
-};
 });
+ 

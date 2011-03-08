@@ -1,144 +1,274 @@
-define(["args", "config", "loader", "./fileUtils", "./defaultBuildControl"], function(args, config, loader, fileUtils, bc) {
-var
-  getFilename= fileUtils.getFilename,
-  getFilepath= fileUtils.getFilepath,
-  cleanupPath= fileUtils.cleanupPath,
-  compactPath= loader.compactPath,
-  isAbsolutePath= fileUtils.isAbsolutePath,
-  catPath= fileUtils.catPath,
+define(["./argv", "./fileUtils", "./defaultBuildControl", "./stringify", "loader"], function(args, fileUtils, bc, stringify, loader) {
+  var
+    // alias some fileUtils functions to local variables
+    getFilename= fileUtils.getFilename,
+    cleanupPath= fileUtils.cleanupPath,
+    compactPath= fileUtils.compactPath,
+    isAbsolutePath= fileUtils.isAbsolutePath,
+    catPath= fileUtils.catPath,
 
-  isString= function(it) {
-    return typeof it === "string";
-  },
+    computePath= function(path, base) {
+      path= cleanupPath(path);
+      return compactPath(isAbsolutePath(path) ? path : catPath(base, path));
+    },
 
-  cleanAndComputeBuildInfo= function() {
-    // Clean up the configuration and compute default values:
-    var
-      computePath= function(path, base) {
-        return compactPath((!base || isAbsolutePath(path)) ? cleanupPath(path) : catPath(base, cleanupPath(path)));
-      },
+    isString= function(it) {
+      return typeof it === "string";
+    },
 
-      normalizeCopyDirs= function(vector, srcBase, destBase) {
-        // vector is a vector of [src, dest, exclude] triples (exclude is optional); relative names are relative to srcBase and destBase, repectively
-        return (vector || []).map(function(item) {
-          return [computePath(item[0], srcBase), computePath(item[1], destBase), item[2] || []];
-        });
-      },
+    isEmpty= function(it) {
+      for (var p in it) return false;
+      return true;
+    },
 
-      normalizeCopyFiles= function(vector, srcBase, destBase) {
-        // vector is a vector of [src, dest] filenames; relative names are relative to srcBase and destBase, repectively
-        return (vector || []).map(function(item) {
-          var dest= computePath(item[1], destBase);
-          return [computePath(item[0], srcBase), dest];
-        });
-      },
+    mix= function(dest, src) {
+      dest= dest || {};
+      src= src || {};
+      for (var p in src) dest[p]= src[p];
+      return dest;
+    },
 
-      // the mother of all src paths
-      basePath= bc.basePath= compactPath(cleanupPath(bc.basePath)),
-
-      // the mother of all dest paths
-      destBasePath= bc.destBasePath= computePath(bc.destBasePath),
-
-      // the default dest package base
-      destPackageBasePath= bc.destPackageBasePath= computePath(bc.destPackageBasePath, destBasePath);
-
-
-    bc.pagePath= compactPath(cleanupPath(bc.pagePath)) || basePath;
-    bc.pathTransforms= bc.pathTransform || [];
-
-    if (!destBasePath || !destBasePath.length) {
-      console.log('You must specify a destination destBasePath path (use the "--base" build option or build script "destBasePath" property).');
-      throw new Error("failed to provide destination base path");
-    }
-
-    if (bc.srcLoader) {
-      bc.srcLoader= computePath(bc.srcLoader, bc.basePath);
-      bc.loaderName= getFilename(bc.srcLoader);
-      bc.destLoader= bc.destLoader ? computePath(bc.destLoader, destBasePath) : computePath("./" + bc.loaderName, destBasePath);
-    } else {
-      bc.srcLoader= bc.loaderName= bc.destLoader= 0;
-    }
-
-    // copyDirs is a vector of [src, dest] pairs; relative names are relative to basePath and destBasePath, repectively
-    bc.copyDirs= normalizeCopyDirs(bc.copyDirs, basePath, destBasePath);
-    bc.copyFiles= normalizeCopyFiles(bc.copyFiles, basePath, destBasePath);
-
-    // clean up the package objects and fully compute each field
-    bc.packageMap= {};
-    for (var packageName in bc.packages) {
-      var src= bc.packages[packageName];
-      // build up info to tell all about a package; name, lib, main, urlMap, packageMap, location
-      // are semantically identical to definitions used by AMD loader
-      src.srcName= src.name;
-      src.srcLib= isString(src.lib) ? src.lib : "lib";
-      src.srcMain= isString(src.main) ? src.main : "main";
-      src.srcUrlMap= src.urlMap || [];
-      src.srcPackageMap= src.packageMap || 0;
-      src.srcLocation= computePath(src.location || src.name, basePath);
-
-      // exclude gives a vector of regexs to that give filenames to exclude from automatic module discovery
-      src.exclude= src.exclude || [];
-      
-      // modules gives a vector of specific modules to include in the build
-      src.modules= src.modules || [];
-
-      // dest says where to output the compiled code stack
-      // TODO destPackagemap
-      src.destName= src.destName || src.srcName;
-      src.destLib= src.destLib || src.srcLib;
-      src.destMain= src.destMain || src.srcMain;
-      src.destUrlMap= src.destUrlMap || src.urlMap || [];
-      src.destLocation= src.name ? computePath(src.destLocation || src.destName, destPackageBasePath) : destBasePath;
-
-      if (!src.copyDirs && !bc.buildFlags.singleFile) {
-        // copy the lib directory; don't copy any hidden directorys (e.g., .git, .svn)
-        if (src.srcName) {
-          // regular package
-          bc.copyDirs.push([catPath(src.srcLocation, src.srcLib), catPath(src.destLocation, src.destLib), ["*/.*"]]);
-        } else {
-          // default package
-          bc.copyDirs.push([basePath, destBasePath, ["*/.*"]]);
+    mixPackage= function(packageInfo) {
+      // the default package is stored at "*"
+      var name= packageInfo.name || "*";
+      // notice that we only overwrite package properties that are given
+      bc.packageMap[name]= mix(bc.packageMap[name], packageInfo);
+    },
+  
+    // mix a build control object into the global build control object
+    mixBuildControlObject= function(src) {
+      // the build control properties...
+      //   paths, pluginProcs, transforms, staticHasFlags
+      // ...are mixed one level deep; packages and packagePaths require special handling; all others are over-written
+      for (var p in src) {
+        if (!/(paths)|(pluginProcs)|(transforms)|(staticHasFlags)|(packages)|(packagePaths)/.test(p)) {
+          bc[p]= src[p];
         }
       }
+      // the one-level-deep mixers 
+      ["paths","pluginProcs","transforms","staticHasFlags"].forEach(function(p) {
+        bc[p]= mix(bc[p], src[p]);
+      });
+  
+      // packagePaths and packages require special processing to get their contents into packageMap; do that first...
+      // process packagePaths before packages before packageMap since packagePaths is less specific than
+      // packages is less specific than packageMap. Notice that attempts to edit an already-existing package
+      // only edits specific package properties given (see mixPackage, above)
+      for (var base in src.packagePaths) {
+        src.packagePaths[base].forEach(function(packageInfo) {
+          if (isString(packageInfo)) {
+            packageInfo= {name:packageInfo};
+          }
+          packageInfo.location= catPath(base, packageInfo.name);
+          mixPackage(packageInfo);
+        });
+      };
+      (src.packages || []).forEach(function(packageInfo) {
+          if (isString(packageInfo)) {
+            packageInfo= {name:packageInfo};
+          }
+          mixPackage(packageInfo);
+      });
+    };
 
-      // copyDirs/copyFiles just like global, except relative to the src.(src|dest)Location
-      if (src.copyDirs && src.copyDirs.length) {
-        bc.copyDirs= bc.copyDirs.concat(normalizeCopyDirs(src.copyDirs, src.srcLocation, src.destLocation));
+  // initialize the default build log implementation
+  mix(bc, {
+    errorCount:0,
+    warnCount:0,
+    messages:[],
+  
+    log:function(message) {
+      bc.messages.push(message);
+      if (bc.showLog || true) {
+        console.log(message);
       }
-      if (src.copyFiles && src.copyFiles.length) {
-        bc.copyFiles= bc.copyFiles.concat(normalizeCopyFiles(src.copyFiles, src.srcLocation, src.destLocation));
-      }
-
-      if (src.srcName) {
-        // recall, the default package has name===""
-        bc.packageMap[src.srcName]= src.srcName;
-      }
+    },
+  
+    logWarn: function(message) {
+      bc.warnCount++;
+      message= "WARN: " + message;
+      bc.messages.push(message);
+      console.log(message);
+    },
+  
+    logError: function(message) {
+      bc.errorCount++;
+      message= "ERROR: " + message;
+      bc.messages.push(message);
+      console.log(message);
     }
+  });
 
-    for (var p in bc.modules || {}) {
-      bc.modules[p]= computePath(bc.modules[p], basePath);
-    }
 
-    // figure out the real load value; lots of possibilities for requirejs compat
-    var load= 
-      bc.loaderConfig.load || 
-      (bc.loaderConfig.main && [bc.loaderConfig.main]) || 
-      bc.loaderConfig.deps ||
-      bc.load || 
-      (bc.main && [bc.main]) || 
-      bc.deps;
-    delete bc.loaderConfig.load;
-    delete bc.loaderConfig.main;
-    delete bc.loaderConfig.deps;
-    delete bc.load;
-    delete bc.main;
-    delete bc.deps;
-    if (load) {
-      bc.loaderConfig.load= load;
+  // for each build control object in args, mix into bc in the order they appeared on the command line
+  args.buildControlScripts.forEach(function(item) {
+    var
+      temp= mix({}, item),
+      build= item.build;
+    delete temp.build;
+    mixBuildControlObject(temp);
+    build && mixBuildControlObject(build);
+  });
+
+
+  // lastly, explicit command line switches override any read build control objects
+  for (var argName in args) {
+    bc[argName]= args[argName];
+  }
+
+  //
+  // at this point the raw build control object has been fully initialized; clean it up and look for errors...
+  //
+
+  bc.basePath= compactPath(cleanupPath(bc.basePath));
+  bc.pagePath= computePath(bc.pagePath || bc.basePath, bc.basePath);
+  bc.destBasePath= computePath(bc.destBasePath || (bc.basePath + (bc.basePathSuffix || "-build")), bc.basePath);
+  bc.destPackageBasePath= computePath(bc.destPackageBasePath || "./packages", bc.destBasePath);
+
+  var cleanupFilenamePair= function(item, srcBasePath, destBasePath, hint) {
+    var result;
+    if (isString(item)) {
+      result= [computePath(item, srcBasePath), computePath(item, destBasePath)];
     } else {
-      delete bc.loaderConfig.load;
+      result= [computePath(item[0], srcBasePath), computePath(item[1], destBasePath)].concat(item.slice(2));
     }
+    if (!isAbsolutePath(result[0]) || !isAbsolutePath(result[1])) {
+      bc.logError("Unable to compute an absolute path for an item in " + hint + " (" + item + ")");
+    }
+    return result;
+  };
 
+  // compute files, dirs, and trees
+  (function () {
+    for (var property in {files:1, dirs:1, trees:1}) {
+      bc[property]= bc[property].map(function(item) {
+        return cleanupFilenamePair(item, bc.basePath, bc.destBasePath, property);
+      });
+    }
+  })();
+
+  // cleanup the compactCssSet (if any)
+  (function() {
+    var cleanSet= {}, src, dest;
+    for (src in bc.compactCssSet) {
+      dest= bc.compactCssSet[src];
+      cleanSet[computePath(src, bc.basePath)]= isString(dest) ? computePath(dest, bc.destBasePath) : dest;
+    }
+    bc.compactCssSet= cleanSet;
+  })();
+
+  // cleanup the replacements (if any)
+  (function() {
+    var cleanSet= {}, src, dest;
+    for (src in bc.replacements) {
+      cleanSet[computePath(src, bc.basePath)]= bc.replacements[src];
+    }
+    bc.replacements= cleanSet;
+  })();
+
+  // clean up bc.packageMap and bc.paths so they can be used just as in bdLoad
+  (function() {
+    // if there is at least one package and the default package was not explicitly given provide it
+    if (!isEmpty(bc.packageMap) && !bc.noDefaultPackage && !bc.packageMap["*"]) {
+      bc.packageMap["*"]= {name:"", lib:"", main:"", location:""};
+    }
+    if (bc.packageMap["*"]) {
+      // overridable defaults for lib, location, destLib destLocation
+      // name, main, destName, destMain are unconditionally ""
+      bc.packageMap["*"]= mix(mix({lib:".", location:bc.basePath, destLib:".", destLocation:bc.destBasePath}, bc.packageMap["*"]), {name:"", main:"", destName:"", destMain:""});
+    }
+    // so far, we've been using bc.packageMap to accumulate package info as it is provided by packagePaths and/or packages
+    // in zero to many build control scripts. This routine moves each package config into bc.packages which is a map
+    // from package name to package config (this is different from the array the user uses to pass package config info). Along 
+    // the way, each package config object is cleaned up and all default values are calculated. Finally, the bdLoad-required 
+    // global packageMap (a map from package name to package name) is computed.
+    bc.packages= bc.packageMap;
+    bc.destPackages= {};
+    bc.packageMap= {};
+    bc.destPackageMap= {};
+    for (var packageName in bc.packages) {
+      var pack= bc.packages[packageName];
+      // build up info to tell all about a package; all properties semantically identical to definitions used by bdLoad
+      // note: pack.name=="" for default package
+      pack.lib= isString(pack.lib) ? pack.lib : "lib";
+      pack.main= isString(pack.main) ? pack.main : "main";
+      pack.location= computePath(pack.location || (pack.name ? "./" + pack.name : bc.basePath), bc.basePath);
+      pack.packageMap= pack.packageMap || 0;
+      pack.mapProg= loader.computeMapProg(pack.packageMap);
+      pack.pathTransforms= pack.pathTransforms || [];
+  
+      // dest says where to output the compiled code stack
+      var destPack= bc.destPackages[pack.name || "*"]= {
+        name:pack.destName || pack.name,
+        lib:pack.destLib || pack.lib,
+        main:pack.destMain || pack.main,
+        location:computePath(pack.destLocation || ("./" + (pack.destName || pack.name)), bc.destPackageBasePath),
+        packageMap:pack.destPackageMap || pack.packageMap,
+        mapProg:loader.computeMapProg(pack.destPackageMap),
+        pathTransforms:pack.destPathTransforms || pack.pathTransforms
+      };
+  
+      if (!pack.trees) {
+        // copy the lib directory; don't copy any hidden directorys (e.g., .git, .svn) or temp files
+        pack.trees= [[compactPath(catPath(pack.location, pack.lib)), compactPath(catPath(destPack.location, destPack.lib)), "*/.*", "*~"]];
+      } // else the user has provided explicit copy instructions
+  
+      // filenames, dirs, trees just like global, except relative to the pack.(src|dest)Location
+      for (var property in {files:1, dirs:1, trees:1}) {
+        pack[property]= (pack[property] || []).map(function(item) {
+          return cleanupFilenamePair(item, pack.location, destPack.location, property + " in package " + pack.name);
+        });
+      }
+      if (pack.name) {
+        // don't try to put the default package (named "") in the packageMap
+        bc.packageMap[pack.name]= pack.name;
+        bc.destPackageMap[destPack.name]= destPack.name;
+      }
+    }
+    // now that bc.packageMap is initialized...
+    bc.packageMapProg= loader.computeMapProg(bc.packageMap);
+    bc.destPackageMapProg= loader.computeMapProg(bc.destPackageMap);
+
+    // get this done too...
+    bc.pathsMapProg= loader.computeMapProg(bc.paths);
+    bc.destPathsMapProg= loader.computeMapProg(bc.destPaths || bc.paths);
+
+    // add some methods to bc to help with resolving AMD module info
+    bc.srcModules= {};
+    bc.getSrcModuleInfo= function(mid, referenceModule) {
+      var result= loader.getModuleInfo(mid, referenceModule, bc.packages, bc.srcModules, bc.basePath + "/", bc.pagePath, bc.packageMapProg, bc.pathsMapProg, bc.pathTransforms, true);
+      if (result.pid=="") {
+        result.pack= bc.packages["*"];
+      }
+      return result;
+    };
+
+    bc.nameToUrl= function(name, ext, referenceModule) {
+      // slightly different algorithm depending upon whether or not name contains
+      // a filetype. This is a requirejs artifact which we don't like.
+      // note: this is only needed to find source modules, never dest modules
+      var
+        match= name.match(/(.+)(\.[^\/]+)$/),
+        moduleInfo= bc.getSrcModuleInfo(match && match[1] || name, referenceModule),
+        url= moduleInfo.url;
+      // recall, getModuleInfo always returns a url with a ".js" suffix; therefore, we've got to trim it
+      return url.substring(0, url.length-3) + (ext ? ext : (match ? match[2] : ""));
+    },      
+
+    bc.destModules= {};
+    bc.getDestModuleInfo= function(mid, referenceModule) {
+      // note: bd.destPagePath should never be required; but it's included for completeness and up to the user to provide it if some transform does decide to use it
+      var result= loader.getModuleInfo(mid, referenceModule, bc.destPackages, bc.destModules, bc.destBasePath + "/", bc.destPagePath, bc.destPackageMapProg, bc.destPathsMapProg, bc.destPathTransforms, true);
+      if (result.pid=="") {
+        result.pack= bc.packages["*"];
+      }
+      return result;
+    };
+  })();
+
+  (function() {
+    // a layer is a module that should be written with all of its dependencies, as well as all modules given in
+    // the include vector together with their dependencies, excluding modules contained in the exclude vector and their dependencies
     var fixedLayers= {};
     for (var mid in bc.layers) {
       var layer= bc.layers[mid];
@@ -152,171 +282,129 @@ var
         layer.include= layer.include || [];
       }
       if (layer.boot) {
-        layer.boot= computePath(layer.boot, destBasePath);
+        layer.boot= computePath(layer.boot, bc.destBasePath);
       };
       fixedLayers[mid]= layer;
     }
     bc.layers= fixedLayers;
+  })();
 
-    bc.locales= bc.loaderConfig.locales || bc.locales || [];
+  bc.locales= bc.loaderConfig.locales || bc.locales || [];
 
-    //cleanup the copyDirs and copyFiles
-    bc.copyDirs= bc.copyDirs.map(function(item) {
-      return [compactPath(item[0]), compactPath(item[1]), item[2] || []];
-    });
-    bc.copyFiles= bc.copyFiles.map(function(item) {
-      return [compactPath(item[0]), compactPath(item[1])];
-    });
-    if (bc.noCopy) {
-      bc.copyDirs= bc.copyFiles= [];
+  // for the static has flags, -1 means its not static; this gives a way of combining several static has flag sets
+  // and still allows later sets to delete flags set in earlier sets
+  var deleteStaticHasFlagSet= [];
+  for (p in bc.staticHasFlags) if (bc.staticHasFlags[p]==-1) deleteStaticHasFlagSet.push(p);
+  deleteStaticHasFlagSet.forEach(function(flag){delete bc.staticHasFlags[flag];});
+
+  // dump bc (if requested) before changing gateNames to gateIds below
+  if (bc.check) (function() {
+    // don't dump out private properties used by bdBuild--they'll just generate questions
+    var 
+      dump= {},
+      internalProps= {
+        buildControlScripts:1,
+        check:1,
+        destModules:1,
+        destPackageMapProg:1,
+        destPackages:1,
+        destPathsMapProg:1,
+        errorCount:1,
+        getDestModuleInfo:1,
+        getSrcModuleInfo:1,
+        log:1,
+        logError:1,
+        logWarn:1,
+        messages:1,
+        nameToUrl:1,
+        packageMap:1,
+        packageMapProg:1,
+        packages:1,
+        pathsMapProg:1,
+        resources:1,
+        resourcesByDest:1,
+        srcModules:1,
+        startTimestamp:1,
+        version:1,
+        warnCount:1
+      };
+    for (var p in bc) if (!internalProps[p]) {
+      dump[p]= bc[p];
     }
-
-    // for the static has flags, -1 means its not static; this gives a way of combining several static has flag sets
-    // and still allows later sets to delete flags set in earlier sets
-    var deleteStaticHasFlagSet= [];
-    for (p in bc.staticHasFlags) if (bc.staticHasFlags[p]==-1) deleteStaticHasFlagSet.push(p);
-    deleteStaticHasFlagSet.forEach(function(flag){delete bc.staticHasFlags[flag];});
-
-    // cleanup cssCompactSet
-    // cssCompactSet is a set from destination CSS file name to source CSS filename or vector of source CSS filenames
-    // relative src/dest paths are relative to basePath/destBasePath
-    var cssCompactList= [];
-    for (var destCssFilename in bc.cssCompactSet) {
-      var srcCssFilenames= bc.cssCompactSet[destCssFilename];
-      if (isString(srcCssFilenames)) {
-        srcCssFilenames= [srcCssFilenames];
-      }
-      cssCompactList.push([
-        computePath(destCssFilename, destBasePath), 
-        srcCssFilenames.map(function(filename){return computePath(filename, basePath);})]);
-    }
-    cssCompactList.sort(function(lhs, rhs){return lhs[0] < rhs[0] ? -1  : (lhs[0] > rhs[0] ? 1 : 0);});
-    bc.cssCompactList= cssCompactList;
-    delete bc.cssCompactSet;
-
-    bc.sandbox= computePath(bc.sandbox || config.sandbox, basePath);
-    bc.backup= (bc.backup || config.backup) && computePath(bc.backup || config.backup, basePath);
-
-    bc.startTimestamp= new Date();
-
-    bc.jobs= {};
-
-    // bc.destDirs says directories that will be written to by the build
-    bc.destDirs= [];
-  },
-
-  mix= function(dest, src) {
-    dest= dest || {};
-    src= src || {};
-    for (var p in src) src.hasOwnProperty(p) && (dest[p]= src[p]);
-    return dest;
-  },
-
-  mixedBuildProps= "packageMap.paths.modules.loaderConfig.loaderHasMap.staticHasFlags.buildFlags.procMap".split("."),
-
-  mixBuild= function(src) {
-    // the build control properties...
-    //   packages, packagePaths, packageMap, paths, modules, loaderConfig, loaderHasMap, staticHasFlags, buildFlags, procMap
-    // ...are mixed; all others are over-written
-    for (var p in src) {
-      if (src.hasOwnProperty(p) && !/(packages)|(packagePaths)|(packageMap)|(paths)|(modules)|(loaderConfig)|(loaderHasMap)|(staticHasFlags)|(buildFlags)|(procMap)/.test(p)) {
-        bc[p]= src[p];
-      }
-    }
-
-    // process packagePaths before packages since packagePaths is syntax sugar for packages
-    // and if the user wants to override an existing package, the long form is more-likely authoritative
-    for (var base in src.packagePaths) {
-      src.packagePaths[base].forEach(function(packageInfo) {
-        if (isString(packageInfo)) {
-          packageInfo= {name:packageInfo};
-        }
-        packageInfo.location= catPath(cleanupPath(base), cleanupPath(packageInfo.name));
-        var name= packageInfo.name || "*";
-        bc.packages[name]= mix(bc.packages[name], pack);
+    var packages= dump.packages= [];
+    for (p in bc.packages) {
+      var 
+        pack= bc.packages[p],
+        destPack= bc.destPackages[p];
+      packages.push({
+        name:pack.name, lib:pack.lib, main:pack.main, location:pack.location, modules:pack.modules||{},
+        destName:destPack.name, destLib:destPack.lib, destMain:destPack.main, destLocation:destPack.location
       });
-    };
-    (src.packages || []).forEach(function(pack) {
-      if (isString(pack)) {
-        pack= {name:pack};
+    }
+    console.log(stringify(dump).result + "\n");
+  })();
+
+  // clean up the gates and transforms
+  (function() {
+    // check that each transform references a valid gate
+    for (var gates= {}, i= 0; i<bc.gates.length; i++) {
+      gates[bc.gates[i][1]]= i;
+    }
+    var
+      transforms= bc.transforms,
+      gateId;
+    for (var transformId in transforms) {
+      // each item is a [AMD-MID, gateName] pair
+      gateId= gates[transforms[transformId][1]];
+      if (typeof gateId == "undefined") {
+        bc.logError("Unknown gate (" + transformId + ":" + transforms[transformId] + ") given in transforms");
+      } else {
+        transforms[transformId][1]= gateId;
       }
-      var name= pack.name || "*";
-      bc.packages[name]= mix(bc.packages[name], pack);
+    }
+  })();
+
+  // clean up the transformJobs
+  (function() {
+    // check that that each transformId referenced in transformJobs references an existing item in transforms
+    // ensure proper gate order of the transforms given in transformJobs; do not disturb order within a given
+    // gate--this is the purview of the user
+    var transforms= bc.transforms;
+    bc.transformJobs.forEach(function(item) {
+      // item is a [predicate, vector of transformId] pairs
+      var error= false;
+      var tlist= item[1].map(function(id) {
+        // item is a transformId
+        if (transforms[id]) {
+          // return a [trandformId, gateId] pair
+          return [id, transforms[id][1]];
+        } else {
+          error= true;
+          bc.logError("Unknown transform (" + id + ") in transformJobs.");
+          return 0;
+        }
+      });
+      // tlist is a vector of [transformId, gateId] pairs than need to be checked for order
+      if (!error) {
+        for (var i= 0, end= tlist.length - 1; i<end;) {
+          if (tlist[i][1]>tlist[i+1][1]) {
+            var t= tlist[i];
+            tlist[i]= tlist[i+1];
+            tlist[i+1]= t;
+            i && i--;
+          } else {
+            i++;
+          }
+        }
+        // now replace the vector of transformIds with the sorted list
+        item[1]= tlist;
+      }
     });
+  })();
 
-    mixedBuildProps.forEach(function(prop) {
-      mix(bc[prop], src[prop]);
-    });
-  };
-
-// initialize the build log
-bc.messages= [];
-bc.log= function(message) {
-  bc.messages.push(message);
-  if (bc.showLog || true) {
-    console.log(message);
+  if (args.unitTest=="dumpbc") {
+    console.log(stringify(bc).result + "\n");
   }
-};
-bc.logWarn= function(message) {
-  message= "WARN: " + message;
-  bc.messages.push(message);
-  console.log(message);
-};
-bc.logError= function(message) {
-  message= "ERROR: " + message;
-  bc.messages.push(message);
-  console.log(message);
-};
 
-// some required initialization
-mixedBuildProps.forEach(function(prop) {
-  bc[prop]= bc[prop] || {};
-});
-
-// default build control object gives packages as a vector; convert to a map
-var packages= {};
-(bc.packages || []).forEach(function(pack) {
-  if (isString(pack)) {
-    pack= {name:pack};
-  }
-  var name= pack.name || "*";
-  packages[name]= pack;
-});
-bc.packages= packages;
-
-// additional build control objects are mixed into the build control object in the order they appeared on the command line
-args.build.forEach(function(item) {
-  var build= 0;
-  if (item.build) {
-    build= item.build;
-    delete item.build;
-  }
-  mixBuild(item);
-  build && mixBuild(build);
-});
-
-// specific command line switches have the highest priority
-"basePath.destBasePath.destPackageBasePath.destroyBackups.amdLoader.amdLoaderConfig.destroyBackups.dump.check".split(".").forEach(function(p) {
-  if (args.hasOwnProperty(p)) {
-    bc[p]= args[p];
-  }
-});
-
-if (!bc.packages["*"] && !bc.noDefaultPackage) {
-  // the default package was not explicitly given; therefore, provide it
-  bc.packages["*"]= {
-    // the default package
-    name:"",
-    lib:"",
-    main:"",
-    urlMap:[],
-    location:"",
-    destName:"",
-    destUrlMap:[]
-  };
-}
-
-
-cleanAndComputeBuildInfo();
-return bc;
+  return bc;
 });
